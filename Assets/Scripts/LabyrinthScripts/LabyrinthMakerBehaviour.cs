@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,10 +6,11 @@ public class LabyrinthMakerBehaviour : MonoBehaviour
 {
     [SerializeField]
     private GameObject Wall;
-    private GameObject ValidDestinationZoneOne;
     [SerializeField]
     private int size = 13;
-    bool[,] map;
+    public bool[,] map;
+    public GameObject enemy;
+    private float enemyDelayTime=5f;
 
     private void Start()
     {
@@ -19,11 +20,11 @@ public class LabyrinthMakerBehaviour : MonoBehaviour
         }
 
         map = new bool[size + 3, size + 3];
-        map = GenerateMap(size);
+        map=GenerateMap(size);
 
         float lenghtofCube = Wall.GetComponent<MeshFilter>().sharedMesh.bounds.size.x;
-        float startX = transform.position.x - lenghtofCube * ((size + 2) / 2);
-        float startZ = transform.position.z - lenghtofCube * ((size + 2) / 2);
+        float startX = transform.position.x-lenghtofCube*((size+2)/2);
+        float startZ = transform.position.z - lenghtofCube * ((size+2)/ 2);
 
         for (int i = 0; i <= size + 1; i++)
         {
@@ -38,7 +39,14 @@ public class LabyrinthMakerBehaviour : MonoBehaviour
             }
             startX += lenghtofCube;
         }
+        StartCoroutine(SpawnEnemyDelay());
+        
+    }
 
+    private IEnumerator SpawnEnemyDelay()
+    {
+        yield return new WaitForSeconds(enemyDelayTime);
+        enemy.SetActive(true);
     }
 
 
@@ -55,7 +63,7 @@ public class LabyrinthMakerBehaviour : MonoBehaviour
     }
     void Wilson(bool[,] map, int size)
     {
-
+       
 
         int s = size / 2 + 1;
         LabCell[,] miniLab = new LabCell[s + 2, s + 2];
