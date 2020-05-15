@@ -7,10 +7,10 @@ public class EnemyBehavior : MonoBehaviour
 
     private Animator animator;
     bool[,] map;
-    bool playing = true;
     int mapSize;
-    int yPosition = 0;  // nu avem podea? :))
+    int yPosition = -1;  // nu avem podea? :))
     int mapDifference;  // pozitia map[1,1] === transform.position (1- mapDifference, yPosition, 1-mapDifference) 
+    public GameObject gm;
 
     List<KeyValuePair<int, int>> navPositions = new List<KeyValuePair<int, int>>(); // pozitiile navigabile
     int currentPathIndex;
@@ -21,18 +21,22 @@ public class EnemyBehavior : MonoBehaviour
     
 
     int startX = -1, startZ, endX, endZ;
-    private bool chasing=false;
-    private float rotationSpeed=2f;
+    private float rotationSpeed=5f;
+
+    enum enemyStates { roaming, chasing, gameOver, attack };
+    enemyStates state;
 
     void OnEnable()
     {
-        map = GameObject.Find("GameObject").GetComponent<LabyrinthMakerBehaviour>().map;
+        map = GameObject.Find("BaseFloor").GetComponent<LabyrinthMakerBehaviour>().map;
         mapSize = (int) Mathf.Sqrt(map.Length);
-        mapDifference = mapSize / 2 - 1;
+        mapDifference = mapSize/2-1;
         getNavigablePositions();
         pathFinder=new PathFinding(map);
         SetTarget();
         animator = GetComponent<Animator>();
+
+        state = enemyStates.roaming;
 
     }
 
@@ -41,17 +45,17 @@ public class EnemyBehavior : MonoBehaviour
         currentPathIndex = 0;
         pathVectorList = null;
 
-        if (chasing)
+        if (state==enemyStates.chasing)
         {
-            startX = (int)transform.position.x + mapDifference;
-            startZ = (int)transform.position.z + mapDifference;
+            startX = (int)(transform.position.x + mapDifference)*2;
+            startZ = (int)(transform.position.z + mapDifference)*2;
 
             transform.position = new Vector3((int)transform.position.x, transform.position.y, (int)transform.position.z);
             //endX = navPositions[40].Key; //TODO inlocuit cu pozitia playerului (int)
             //endZ = navPositions[40].Value;
 
-            endX = (int) GameObject.Find("Cube").transform.position.x+mapDifference;
-            endZ = (int) GameObject.Find("Cube").transform.position.z+mapDifference;
+           // endX = (int) GameObject.Find("Cube").transform.position.x+mapDifference;
+            //endZ = (int) GameObject.Find("Cube").transform.position.z+mapDifference;
 
         }
         else
@@ -61,7 +65,7 @@ public class EnemyBehavior : MonoBehaviour
             {
                 startX = navPositions[0].Key;    //nu am stiut unde sa spawnez asa ca am spawnat o pe prima pozitie 'libera'
                 startZ = navPositions[0].Value;
-                Vector3 startingPosition = new Vector3(startX - mapDifference, yPosition, startZ - mapDifference);
+                Vector3 startingPosition = new Vector3((startX - mapDifference)*2, yPosition, (startZ - mapDifference)*2);
                 transform.position = startingPosition;
             }
             else
@@ -81,7 +85,7 @@ public class EnemyBehavior : MonoBehaviour
     {
         List<Vector3> vectorPath = new List<Vector3>();
         foreach(PathNode pathNode in path)
-            vectorPath.Add(new Vector3(pathNode.xValue - mapDifference, yPosition, pathNode.zValue - mapDifference));
+            vectorPath.Add(new Vector3((pathNode.xValue - mapDifference)*2, yPosition, (pathNode.zValue - mapDifference)*2));
 
         vectorPath.RemoveAt(0);
      
@@ -109,7 +113,7 @@ public class EnemyBehavior : MonoBehaviour
 
         int newX= (int)GameObject.Find("Cube").transform.position.x;
         int newZ = (int)GameObject.Find("Cube").transform.position.z;
-        if (Vector3.Distance(transform.position, new Vector3(newX, 1, newZ)) <= 1.5f) //te-o prins
+        if (Vector3.Distance(transform.position, new Vector3(newX, 1, newZ)) <= 2f) //te-o prins
         { 
             gameOver();
             return;
@@ -118,17 +122,17 @@ public class EnemyBehavior : MonoBehaviour
             if (Vector3.Distance(transform.position, new Vector3(newX, 1, newZ)) < targetRange) //pozitia playerului
         {
             //chase that mf
-            if (!chasing || currentPathIndex >= pathVectorList.Count)
+            if (state!=enemyStates.chasing || currentPathIndex >= pathVectorList.Count)
             {
-                chasing = true;
-                animator.SetBool("chasing", true);
+                state = enemyStates.chasing;
+                animator.SetBool(state.ToString(), true);
                 SetTarget(); 
             }
         }
-        else if (chasing)
+        else if (state==enemyStates.chasing)
         {
-            chasing = false;
-            animator.SetBool("chasing", false);
+            animator.SetBool(state.ToString(), false);
+            state = enemyStates.roaming;
             endX = (int)transform.position.x+mapDifference;
             endZ = (int)transform.position.z+mapDifference;
             SetTarget();
@@ -137,25 +141,16 @@ public class EnemyBehavior : MonoBehaviour
 
     void gameOver()
     {
-        playing = false;
-        animator.SetBool("chasing", false);
-        animator.SetBool("attack", true);
+        state = enemyStates.gameOver;
+        animator.SetBool(enemyStates.chasing.ToString(), false);
+        animator.SetBool(enemyStates.attack.ToString(), true);
     }
 
-    bool ProximityCheck(float distance)
-    {
-           // if (Vector3.Distance(transform.position, enemies[i].transform.position) < distance)
-            {
-                return true;
-            }
-
-        return false;
-    }
 
 
     void Update()
     {
-        if (playing)
+        if (state!=enemyStates.gameOver)
         {
                 FindTarget();
                 if (pathVectorList != null)
@@ -178,10 +173,11 @@ public class EnemyBehavior : MonoBehaviour
                 {
                     transform.position = targetPosition;
                     currentPathIndex++;
-                    if (currentPathIndex >= pathVectorList.Count && !chasing)
+                    if (currentPathIndex >= pathVectorList.Count && state!=enemyStates.chasing)
                         SetTarget();
                 }
             }
+            
         }
         
     }
