@@ -22,7 +22,8 @@ public class LabyrinthMakerBehaviour : MonoBehaviour
         map = new bool[size + 3, size + 3];
         map=GenerateMap(size);
 
-        float lenghtofCube = Wall.GetComponent<MeshFilter>().sharedMesh.bounds.size.x;
+        float lenghtofCube = 2f;
+            //Wall.GetComponent<MeshFilter>().sharedMesh.bounds.size.x;
         float startX = transform.position.x-lenghtofCube*((size+2)/2);
         float startZ = transform.position.z - lenghtofCube * ((size+2)/ 2);
 
